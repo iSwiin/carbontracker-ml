@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+models/*.joblib
+data/epa_factors*.csv
+data/receipt_lines.csv
+data/items.csv
+.env
+.DS_Store
