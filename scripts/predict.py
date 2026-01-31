@@ -1,26 +1,27 @@
 import sys
-import joblib
+from carbontracker.config import Paths, DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL
+from carbontracker.model import load_model, predict_one
+from carbontracker.receipt_cleaning import normalize_text
 
-MODEL_PATH = "models/item_category_clf.joblib"
 
 def main():
     text = " ".join(sys.argv[1:]).strip()
     if not text:
-        print("Usage: python predict.py <receipt line item text>")
-        return
+        print('Usage: python -m scripts.predict "RECEIPT LINE TEXT"')
+        raise SystemExit(1)
 
-    model = joblib.load(MODEL_PATH)
+    paths = Paths()
+    model = load_model(paths.model_path)
 
-    # predict + confidence
-    proba = model.predict_proba([text])[0]
-    label = model.predict([text])[0]
-    conf = float(proba.max())
+    cleaned = normalize_text(text)
+    label, conf = predict_one(model, cleaned)
 
     # threshold to avoid guessing
-    if conf < 0.55:
-        label = "unknown"
+    if conf < DEFAULT_CONF_THRESHOLD:
+        label = UNKNOWN_LABEL
 
-    print({"text": text, "label": label, "confidence": round(conf, 3)})
+    print({"text": cleaned, "label": label, "confidence": round(conf, 3)})
+
 
 if __name__ == "__main__":
     main()

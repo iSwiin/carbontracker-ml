@@ -1,24 +1,54 @@
+# --- Python / virtualenv ---
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
 *.log
 
+# --- Model artifacts ---
 models/*.joblib
+models/*.pkl
+models/*.pt
+models/*.onnx
 
+# --- Data (generated / large / private) ---
 data/epa_factors*.csv
 data/receipt_lines.csv
 data/items.csv
 data/items_public.csv
 data/category_keywords.csv
 data/raw/
+data/**/.ipynb_checkpoints/
 
+# Keep small samples (do NOT ignore these)
+!data/sample/
+!data/sample/**
+
+# --- OS / editor ---
 .env
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
 
+# --- Testing / coverage ---
 .pytest_cache/
 .coverage
+htmlcov/
+
+# --- Build / packaging ---
 dist/
 build/
 *.egg-info/
+src/*.egg-info/
+**/*.egg-info/
+pip-wheel-metadata/
+*.whl
+
+# --- Notebooks (optional) ---
+.ipynb_checkpoints/
+
+# --- Misc ---
+*.tmp
+*.bak

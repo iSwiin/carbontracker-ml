@@ -1,46 +1,52 @@
-import pandas as pd
-import joblib
-import numpy as np
+from carbontracker.engine import score_receipt_csv
+from carbontracker.config import Paths
 import re
 
-MODEL = "models/item_category_clf.joblib"
-FACTORS = "data/category_factors.csv"
-IN = "data/receipt_lines.csv"
 
-GASOLINE_CO2_PER_GAL = 8.887  # kg CO2 per gallon burned (tailpipe CO2) :contentReference[oaicite:3]{index=3}
+# Tailpipe CO2 (gasoline) kg CO2 per gallon burned
+GASOLINE_CO2_PER_GAL = 8.887
 
-model = joblib.load(MODEL)
-factors = pd.read_csv(FACTORS).set_index("category")["kgco2e_per_usd"].to_dict()
 
-df = pd.read_csv(IN)
-texts = df["text"].astype(str).fillna("").tolist()
-
-proba = model.predict_proba(texts)
-pred = model.predict(texts)
-conf = proba.max(axis=1)
-
-# don’t guess when unsure
-pred = np.where(conf < 0.55, "unknown", pred)
-
-df["category"] = pred
-df["confidence"] = conf.round(3)
-
-# Spend-based CO2e
-df["kgco2e"] = df.apply(
-    lambda r: float(r["price"]) * float(factors.get(r["category"], factors.get("unknown", 0.0))),
-    axis=1
-)
-
-# Optional: add tailpipe for gasoline if gallons is present in text
-def parse_gallons(t: str):
-    m = re.search(r"(\d+(\.\d+)?)\s*(GAL|G)\b", t.upper())
+def parse_gallons(text: str):
+    """
+    Extracts gallons from receipt text like:
+      'UNLEADED GAS 12.6GAL' or 'FUEL 10.5 GAL'
+    """
+    t = (text or "").upper()
+    m = re.search(r"(\d+(\.\d+)?)\s*(GAL|G)\b", t)
     return float(m.group(1)) if m else None
 
-for i, t in enumerate(df["text"].astype(str)):
-    if df.loc[i, "category"] == "gasoline":
-        gal = parse_gallons(t)
-        if gal is not None:
-            df.loc[i, "kgco2e"] = gal * GASOLINE_CO2_PER_GAL
 
-print(df[["text", "price", "category", "confidence", "kgco2e"]])
-print("\nTOTAL kgCO2e:", round(df["kgco2e"].sum(), 2))
+def main():
+    paths = Paths()
+
+    # Use engine to do: clean -> drop junk -> predict -> threshold -> spend-based kgCO2e
+    result = score_receipt_csv(
+        csv_path=paths.receipt_lines_csv,
+        paths=paths,
+        conf_threshold=0.45,   # adjust as needed
+        drop_junk=True,
+        score_unknown=False,   # unknown gets 0 kgCO2e
+    )
+
+    df = result["items"]
+
+    # Optional: replace gasoline spend-based CO2e with tailpipe if gallons can be parsed
+    if "category" in df.columns:
+        for i, row in df.iterrows():
+            if row["category"] == "gasoline":
+                gal = parse_gallons(row["text"])
+                if gal is not None:
+                    df.at[i, "kgco2e"] = gal * GASOLINE_CO2_PER_GAL
+
+    total = round(float(df["kgco2e"].sum()), 2)
+
+    print(df[["text", "price", "category", "confidence", "kgco2e"]])
+    print("\nTOTAL kgCO2e:", total)
+    print("TOTAL $:", result["total_spend"])
+    print("UNCLASSIFIED $:", result["unclassified_spend"])
+    print("\nCO2e by category:", result["by_category"])
+
+
+if __name__ == "__main__":
+    main()
