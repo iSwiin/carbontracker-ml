@@ -96,6 +96,3 @@ Response includes:
 ## Notes / limitations
 - CO₂e estimates are spend-based (kgCO₂e per USD) using category factors; values vary by geography and supply chain.
 - This repo assumes you already have structured line items (text + price). OCR and parsing are separate modules.
-
-## License
-MIT (add a LICENSE file if you want this explicitly licensed).
