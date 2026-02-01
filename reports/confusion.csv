@@ -1,0 +1,13 @@
+,pred:beef,pred:beverages,pred:clothing,pred:dairy,pred:electronics,pred:gasoline,pred:household,pred:packaged_food,pred:poultry,pred:produce,pred:restaurant,pred:unknown
+true:beef,14,0,0,0,0,0,0,0,0,0,0,0
+true:beverages,0,13,0,0,0,0,0,0,0,0,0,0
+true:clothing,0,0,7,0,0,0,0,0,0,0,0,0
+true:dairy,0,0,0,7,0,0,0,0,0,0,0,0
+true:electronics,0,0,0,0,9,0,0,0,0,0,0,0
+true:gasoline,0,0,0,0,0,6,0,0,0,0,0,0
+true:household,0,0,0,0,0,0,9,0,0,0,0,0
+true:packaged_food,0,0,0,0,0,0,0,6,0,0,0,0
+true:poultry,0,0,0,0,0,0,0,0,5,0,0,0
+true:produce,0,0,0,0,0,0,0,0,0,11,0,0
+true:restaurant,0,0,0,0,0,0,0,0,0,0,4,0
+true:unknown,0,0,0,0,1,0,0,0,0,0,0,8
