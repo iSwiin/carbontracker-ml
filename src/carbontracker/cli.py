@@ -80,9 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="carbontracker", description="CarbonTrackerML CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    p_train = sub.add_parser("train", help="Train classifier from data/items.csv and save a model artifact")
+    p_train = sub.add_parser(
+        "train", help="Train classifier from data/items.csv and save a model artifact"
+    )
     p_train.add_argument("--data", default=None, help="Path to items.csv (default: data/items.csv)")
-    p_train.add_argument("--out", default=None, help="Output .joblib path (default: models/item_category_clf.joblib)")
+    p_train.add_argument(
+        "--out", default=None, help="Output .joblib path (default: models/item_category_clf.joblib)"
+    )
     p_train.add_argument("--test-size", type=float, default=0.2, help="Test split fraction")
     p_train.add_argument("--seed", type=int, default=42, help="Random seed")
     p_train.set_defaults(func=_cmd_train)
@@ -93,13 +97,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_pred.set_defaults(func=_cmd_predict)
 
     p_score = sub.add_parser("score-csv", help="Score a receipt CSV (text,price) end-to-end")
-    p_score.add_argument("--csv", default=None, help="Path to receipt CSV (default: data/receipt_lines.csv)")
+    p_score.add_argument(
+        "--csv", default=None, help="Path to receipt CSV (default: data/receipt_lines.csv)"
+    )
     p_score.add_argument("--model", default=None, help="Path to model .joblib")
     p_score.add_argument("--factors", default=None, help="Path to category_factors.csv")
-    p_score.add_argument("--threshold", type=float, default=DEFAULT_CONF_THRESHOLD, help="Confidence threshold")
-    p_score.add_argument("--keep-junk", action="store_true", help="Do not drop receipt metadata lines")
-    p_score.add_argument("--score-unknown", action="store_true", help="Score unknown items using factor if present")
-    p_score.add_argument("--out-items", default=None, help="Optional path to write scored line items as CSV")
+    p_score.add_argument(
+        "--threshold", type=float, default=DEFAULT_CONF_THRESHOLD, help="Confidence threshold"
+    )
+    p_score.add_argument(
+        "--keep-junk", action="store_true", help="Do not drop receipt metadata lines"
+    )
+    p_score.add_argument(
+        "--score-unknown", action="store_true", help="Score unknown items using factor if present"
+    )
+    p_score.add_argument(
+        "--out-items", default=None, help="Optional path to write scored line items as CSV"
+    )
     p_score.set_defaults(func=_cmd_score_csv)
 
     return p

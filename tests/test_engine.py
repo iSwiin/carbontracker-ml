@@ -21,11 +21,7 @@ def test_score_dataframe_end_to_end(tmp_path):
 
     factors_csv = tmp_path / "category_factors.csv"
     factors_csv.write_text(
-        "category,kgco2e_per_usd\n"
-        "dairy,2.0\n"
-        "beef,3.0\n"
-        "gasoline,1.0\n"
-        "unknown,0.0\n",
+        "category,kgco2e_per_usd\ndairy,2.0\nbeef,3.0\ngasoline,1.0\nunknown,0.0\n",
         encoding="utf-8",
     )
 

@@ -64,7 +64,8 @@ def safe_train_test_split(
     if stratify:
         try:
             return train_test_split(
-                X, y,
+                X,
+                y,
                 test_size=test_size,
                 random_state=random_state,
                 stratify=y,
@@ -73,7 +74,8 @@ def safe_train_test_split(
             pass
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y,
+        X,
+        y,
         test_size=test_size,
         random_state=random_state,
         stratify=None,
@@ -84,13 +86,19 @@ def safe_train_test_split(
 def main():
     parser = argparse.ArgumentParser(description="Evaluate trained receipt item classifier.")
     parser.add_argument("--data", default=None, help="Path to items.csv (default: from Paths)")
-    parser.add_argument("--model", default=None, help="Path to saved model .joblib (default: from Paths)")
+    parser.add_argument(
+        "--model", default=None, help="Path to saved model .joblib (default: from Paths)"
+    )
     parser.add_argument("--outdir", default="reports", help="Output dir for reports")
     parser.add_argument("--test-size", type=float, default=0.2, help="Test split fraction")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for split")
     parser.add_argument("--no-stratify", action="store_true", help="Disable stratified split")
-    parser.add_argument("--threshold", type=float, default=None,
-                        help="If set, predictions below this max-proba become 'unknown'")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="If set, predictions below this max-proba become 'unknown'",
+    )
 
     args = parser.parse_args()
 
@@ -121,7 +129,8 @@ def main():
     y = df["label"]
 
     X_train, X_test, y_train, y_test, used_stratify = safe_train_test_split(
-        X, y,
+        X,
+        y,
         test_size=args.test_size,
         random_state=args.seed,
         stratify=not args.no_stratify,
@@ -148,7 +157,8 @@ def main():
     f1w = float(f1_score(y_test, y_pred, average="weighted", labels=labels, zero_division=0))
 
     report_dict = classification_report(
-        y_test, y_pred,
+        y_test,
+        y_pred,
         labels=labels,
         output_dict=True,
         zero_division=0,
@@ -169,9 +179,9 @@ def main():
     # Save confusion matrix CSV
     cm = confusion_matrix(y_test, y_pred, labels=labels)
     cm_df = pd.DataFrame(
-    cm,
-    index=[f"true:{label}" for label in labels],
-    columns=[f"pred:{label}" for label in labels],
+        cm,
+        index=[f"true:{label}" for label in labels],
+        columns=[f"pred:{label}" for label in labels],
     )
 
     cm_path = outdir / "confusion.csv"
@@ -225,4 +235,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

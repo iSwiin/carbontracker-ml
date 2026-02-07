@@ -102,9 +102,7 @@ def train_from_csv(
     report = classification_report(y_test, y_pred, digits=2, zero_division=0)
 
     if not can_stratify:
-        report = (
-            "WARNING: non-stratified split (some classes have <2 samples).\n" + report
-        )
+        report = "WARNING: non-stratified split (some classes have <2 samples).\n" + report
 
     return TrainResult(model=model, report=report)
 

@@ -30,7 +30,8 @@ def _detect_factor_col(df: pd.DataFrame) -> str:
 
     # Newer variants often include "margins" + "CO2e" + "USD"
     candidates = [
-        c for c in df.columns
+        c
+        for c in df.columns
         if ("margins" in c.lower()) and ("co2e" in c.lower()) and ("usd" in c.lower())
     ]
     if candidates:

@@ -81,7 +81,9 @@ def score_dataframe(
     total_kg = float(out_df["kgco2e"].sum()) if len(out_df) else 0.0
     total_spend = float(out_df["price"].sum()) if len(out_df) else 0.0
     unclassified_spend = (
-        float(out_df.loc[out_df["category"] == UNKNOWN_LABEL, "price"].sum()) if len(out_df) else 0.0
+        float(out_df.loc[out_df["category"] == UNKNOWN_LABEL, "price"].sum())
+        if len(out_df)
+        else 0.0
     )
 
     by_category = (

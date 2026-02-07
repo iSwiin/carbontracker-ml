@@ -24,9 +24,9 @@ def main():
     result = score_receipt_csv(
         csv_path=paths.receipt_lines_csv,
         paths=paths,
-        conf_threshold=0.45,   # adjust as needed
+        conf_threshold=0.45,  # adjust as needed
         drop_junk=True,
-        score_unknown=False,   # unknown gets 0 kgCO2e
+        score_unknown=False,  # unknown gets 0 kgCO2e
     )
 
     df = result["items"]
