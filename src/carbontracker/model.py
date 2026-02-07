@@ -19,7 +19,7 @@ class TrainResult:
     report: str
 
 
-def build_pipeline() -> Pipeline:
+def build_pipeline(*, min_df: int = 2) -> Pipeline:
     """
     Strong baseline for short noisy strings:
     - char ngrams handle OCR/abbrev better than word ngrams
@@ -27,7 +27,7 @@ def build_pipeline() -> Pipeline:
     vec = TfidfVectorizer(
         analyzer="char_wb",
         ngram_range=(3, 5),
-        min_df=2,
+        min_df=min_df,
         lowercase=True,
     )
     clf = LogisticRegression(
@@ -53,15 +53,59 @@ def train_from_csv(
     X = df[text_col].astype(str).tolist()
     y = df[label_col].astype(str).tolist()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y
-    )
+    # Stratified splits are ideal, but they fail when some classes are very small.
+    # For tiny/sample datasets we fall back to a non-stratified split, or skip the
+    # holdout split entirely.
 
-    model = build_pipeline()
+    n = len(X)
+    unique = len(set(y))
+    counts = pd.Series(y).value_counts(dropna=False)
+    can_stratify = unique >= 2 and int(counts.min()) >= 2
+
+    # For very small datasets, a holdout test set is not meaningful.
+    # Train on all data and return a note.
+    min_test = int(round(n * test_size))
+    if n < 10 or unique < 2 or min_test < 1:
+        model = build_pipeline(min_df=1)
+        model.fit(X, y)
+        return TrainResult(
+            model=model,
+            report=(
+                "Not enough data for a holdout test split; trained on all rows.\n"
+                f"rows={n} unique_labels={unique}"
+            ),
+        )
+
+    strat = y if can_stratify else None
+    try:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=strat,
+        )
+    except ValueError:
+        # As a last resort, do a plain split.
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=None,
+        )
+
+    # If the dataset is small, min_df=2 can wipe out the vocabulary.
+    model = build_pipeline(min_df=1 if n < 50 else 2)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
-    report = classification_report(y_test, y_pred, digits=2)
+    report = classification_report(y_test, y_pred, digits=2, zero_division=0)
+
+    if not can_stratify:
+        report = (
+            "WARNING: non-stratified split (some classes have <2 samples).\n" + report
+        )
 
     return TrainResult(model=model, report=report)
 

@@ -1,0 +1,4 @@
+# Minimal runtime dependencies
+pandas>=2.0
+scikit-learn>=1.2
+joblib>=1.3

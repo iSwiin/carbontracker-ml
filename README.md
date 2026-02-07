@@ -6,6 +6,36 @@ CarbonTrackerML includes:
 - A CO₂e scoring pipeline using category emission factors (kgCO₂e per USD)
 - A FastAPI backend exposing POST /score for app integration
 
+
+## Quickstart
+
+```bash
+# Create env + install (core + dev tools)
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -e ".[dev,api,ocr]"
+```
+
+Train + evaluate:
+
+```bash
+carbontracker train --data data/sample/items_sample.csv --out models/item_category_clf.joblib
+python -m scripts.evaluate --data data/sample/items_sample.csv --model models/item_category_clf.joblib
+```
+
+Score a receipt CSV:
+
+```bash
+carbontracker score-csv --csv data/sample/receipt_lines_sample.csv --out-items reports/scored_items.csv
+```
+
+Run the API:
+
+```bash
+python -m uvicorn api.app:app --reload
+```
+
 ## Project layout
 CarbonTrackerML/
   api/                    FastAPI app
@@ -24,7 +54,7 @@ pip install -e .
 pip install fastapi uvicorn
 
 ## Data files
-Training data: data/items.csv
+Training data: `data/sample/items_sample.csv` (or your own `items.csv`)
 Format:
 text,label
 CHKN BRST 1.24LB,poultry
@@ -39,7 +69,7 @@ dairy,2.578
 household,0.412
 unknown,0.000
 
-Scoring input: data/receipt_lines.csv
+Scoring input: `data/sample/receipt_lines_sample.csv` (or your own `receipt_lines.csv`)
 Format:
 text,price
 CHKN BRST 1.24LB,9.87

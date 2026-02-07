@@ -3,5 +3,7 @@ __all__ = [
     "engine",
     "factors",
     "model",
+    "ocr",
     "receipt_cleaning",
+    "cli",
 ]

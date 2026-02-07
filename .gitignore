@@ -52,3 +52,7 @@ pip-wheel-metadata/
 # --- Misc ---
 *.tmp
 *.bak
+
+# --- Reports (generated) ---
+reports/
+!reports/.gitkeep
