@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 
 from .config import UNKNOWN_LABEL
 
 
-def load_category_factors(path: Path) -> Dict[str, float]:
+def load_category_factors(path: Path) -> dict[str, float]:
     """
     Loads a CSV with columns:
       category, kgco2e_per_usd

@@ -1,8 +1,8 @@
 from pathlib import Path
+
 import pandas as pd
 
-from carbontracker.config import Paths, UNKNOWN_LABEL
-
+from carbontracker.config import UNKNOWN_LABEL, Paths
 
 # Category -> exact "2017 NAICS Title" string in the EPA CSV
 MAP = {

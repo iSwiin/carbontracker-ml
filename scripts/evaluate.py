@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import joblib
 import numpy as np
@@ -30,16 +30,16 @@ class EvalRun:
     test_size: float
     random_state: int
     stratify: bool
-    threshold_unknown: Optional[float]
+    threshold_unknown: float | None
     n_total: int
     n_test: int
-    labels: List[str]
+    labels: list[str]
     accuracy: float
     f1_macro: float
     f1_weighted: float
     data_sha256: str
     model_sha256: str
-    per_class: Dict[str, Dict[str, float]]
+    per_class: dict[str, dict[str, float]]
 
 
 def sha256_file(path: Path) -> str:
@@ -56,7 +56,7 @@ def safe_train_test_split(
     test_size: float,
     random_state: int,
     stratify: bool,
-) -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series, bool]:
+) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series, bool]:
     """
     Stratified split is ideal, but it can fail if some classes have too few samples.
     This falls back to non-stratified split when needed.
@@ -168,7 +168,12 @@ def main():
 
     # Save confusion matrix CSV
     cm = confusion_matrix(y_test, y_pred, labels=labels)
-    cm_df = pd.DataFrame(cm, index=[f"true:{l}" for l in labels], columns=[f"pred:{l}" for l in labels])
+    cm_df = pd.DataFrame(
+    cm,
+    index=[f"true:{label}" for label in labels],
+    columns=[f"pred:{label}" for label in labels],
+    )
+
     cm_path = outdir / "confusion.csv"
     cm_df.to_csv(cm_path)
 
@@ -193,7 +198,7 @@ def main():
         per_class=per_class,
     )
 
-    history: List[Dict[str, Any]] = []
+    history: list[dict[str, Any]] = []
     if metrics_path.exists():
         try:
             history = json.loads(metrics_path.read_text(encoding="utf-8"))

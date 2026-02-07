@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -18,7 +16,6 @@ app = FastAPI(
 
 paths = Paths()
 
-
 # ---------- Models ----------
 
 
@@ -28,7 +25,7 @@ class Line(BaseModel):
 
 
 class ScoreRequest(BaseModel):
-    lines: List[Line]
+    lines: list[Line]
     conf_threshold: float = Field(0.45, ge=0.0, le=1.0)
     drop_junk: bool = True
 
@@ -42,7 +39,7 @@ class ScoredItem(BaseModel):
 
 
 class ScoreResponse(BaseModel):
-    items: List[ScoredItem]
+    items: list[ScoredItem]
     total_kgco2e: float
     total_spend: float
     unclassified_spend: float
@@ -54,7 +51,7 @@ class ScoreResponse(BaseModel):
 
 
 class OCRScoreResponse(ScoreResponse):
-    extracted_lines: List[Line]
+    extracted_lines: list[Line]
     num_extracted_lines: int
 
 
@@ -63,7 +60,7 @@ class OCRScoreResponse(ScoreResponse):
 
 @app.post("/score", response_model=ScoreResponse)
 def score(req: ScoreRequest) -> ScoreResponse:
-    df = pd.DataFrame([l.model_dump() for l in req.lines])
+    df = pd.DataFrame([line.model_dump() for line in req.lines])
 
     try:
         result = score_dataframe(
@@ -75,9 +72,9 @@ def score(req: ScoreRequest) -> ScoreResponse:
             score_unknown=False,
         )
     except FileNotFoundError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     items = [ScoredItem(**row) for row in result["items"].to_dict(orient="records")]
     result["items"] = items
@@ -89,10 +86,10 @@ def score(req: ScoreRequest) -> ScoreResponse:
 
 @app.post("/ocr-score", response_model=OCRScoreResponse)
 async def ocr_score(
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
     conf_threshold: float = 0.45,
     drop_junk: bool = True,
-    tesseract_cmd: Optional[str] = None,
+    tesseract_cmd: str | None = None,
 ) -> OCRScoreResponse:
     """Upload an image/PDF receipt, run OCR, extract candidate (text, price) lines,
     then score CO2e using the existing model + factors.
@@ -110,9 +107,10 @@ async def ocr_score(
             ocr_text = ocr_pdf_bytes(data, cfg=cfg)
         else:
             # OCR image bytes without writing a temp file
+            import io
+
             import pytesseract
             from PIL import Image
-            import io
 
             if cfg.tesseract_cmd:
                 pytesseract.pytesseract.tesseract_cmd = cfg.tesseract_cmd
@@ -120,7 +118,7 @@ async def ocr_score(
             img = Image.open(io.BytesIO(data)).convert("RGB")
             ocr_text = pytesseract.image_to_string(img, config=cfg.tesseract_config)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCR failed: {e}")
+        raise HTTPException(status_code=500, detail=f"OCR failed: {e}") from e
 
     extracted = extract_line_items(ocr_text)
     df = lines_to_dataframe(extracted)
@@ -135,7 +133,7 @@ async def ocr_score(
             score_unknown=False,
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     scored_items = [ScoredItem(**row) for row in result["items"].to_dict(orient="records")]
     extracted_lines = [Line(**row) for row in df.to_dict(orient="records")]

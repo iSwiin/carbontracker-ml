@@ -1,8 +1,8 @@
 import pandas as pd
 
+from carbontracker.config import UNKNOWN_LABEL
 from carbontracker.engine import score_dataframe
 from carbontracker.model import save_model, train_from_csv
-from carbontracker.config import UNKNOWN_LABEL
 
 
 def test_score_dataframe_end_to_end(tmp_path):

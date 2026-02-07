@@ -1,5 +1,5 @@
-from carbontracker.model import train_from_csv, save_model
 from carbontracker.config import Paths
+from carbontracker.model import save_model, train_from_csv
 
 
 def main():

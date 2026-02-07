@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from .config import JUNK_KEYWORDS
-
 
 _multi_space = re.compile(r"\s+")
 _nonprint = re.compile(r"[^\x20-\x7E]+")

@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
 from .config import DEFAULT_CONF_THRESHOLD, Paths
-from .engine import score_dataframe, score_receipt_csv
+from .engine import score_dataframe
 from .model import load_model, predict_one, save_model, train_from_csv
 
 
@@ -65,7 +65,7 @@ def _cmd_score_csv(args: argparse.Namespace) -> None:
         print(f"Wrote: {out_items}")
 
     # Print compact JSON summary
-    summary: Dict[str, Any] = {
+    summary: dict[str, Any] = {
         "total_kgco2e": result["total_kgco2e"],
         "total_spend": result["total_spend"],
         "unclassified_spend": result["unclassified_spend"],

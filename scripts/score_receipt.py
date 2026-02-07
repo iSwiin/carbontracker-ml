@@ -1,7 +1,7 @@
-from carbontracker.engine import score_receipt_csv
-from carbontracker.config import Paths
 import re
 
+from carbontracker.config import Paths
+from carbontracker.engine import score_receipt_csv
 
 # Tailpipe CO2 (gasoline) kg CO2 per gallon burned
 GASOLINE_CO2_PER_GAL = 8.887

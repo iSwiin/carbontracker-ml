@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Optional
 
 import joblib
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 
 
 @dataclass
@@ -119,7 +118,7 @@ def load_model(path: Path) -> Pipeline:
     return joblib.load(path)
 
 
-def predict_one(model: Pipeline, text: str) -> Tuple[str, float]:
+def predict_one(model: Pipeline, text: str) -> tuple[str, float]:
     """
     Returns (predicted_label, confidence).
     Confidence is max predicted probability. Works for probabilistic models.

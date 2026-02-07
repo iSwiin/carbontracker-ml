@@ -1,5 +1,6 @@
 import sys
-from carbontracker.config import Paths, DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL
+
+from carbontracker.config import DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL, Paths
 from carbontracker.model import load_model, predict_one
 from carbontracker.receipt_cleaning import normalize_text
 

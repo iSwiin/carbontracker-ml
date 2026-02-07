@@ -1,10 +1,15 @@
 import sys
 from pathlib import Path
-import pandas as pd
 
-from carbontracker.ocr import OCRConfig, ocr_image_path, ocr_pdf_bytes, extract_line_items, lines_to_dataframe
-from carbontracker.engine import score_dataframe
 from carbontracker.config import Paths
+from carbontracker.engine import score_dataframe
+from carbontracker.ocr import (
+    OCRConfig,
+    extract_line_items,
+    lines_to_dataframe,
+    ocr_image_path,
+    ocr_pdf_bytes,
+)
 
 
 def main():

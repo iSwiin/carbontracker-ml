@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 import pandas as pd
 
-from .config import Paths, DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL
-from .receipt_cleaning import normalize_text, is_junk_line
+from .config import DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL, Paths
 from .factors import load_category_factors
 from .model import load_model, predict_one
+from .receipt_cleaning import is_junk_line, normalize_text
 
 
 @dataclass
@@ -28,7 +28,7 @@ def score_dataframe(
     conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     drop_junk: bool = True,
     score_unknown: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     df must have columns: text, price
     Returns dict with items, totals, breakdown.
@@ -49,10 +49,10 @@ def score_dataframe(
     model = load_model(model_path)
     factors = load_category_factors(factors_path)
 
-    scored: List[ScoredLine] = []
-    for _, r in df.iterrows():
-        text = r["text"]
-        price = float(r["price"])
+    scored: list[ScoredLine] = []
+    for _, row in df.iterrows():
+        text = row["text"]
+        price = float(row["price"])
 
         pred, conf = predict_one(model, text)
 
@@ -80,7 +80,9 @@ def score_dataframe(
 
     total_kg = float(out_df["kgco2e"].sum()) if len(out_df) else 0.0
     total_spend = float(out_df["price"].sum()) if len(out_df) else 0.0
-    unclassified_spend = float(out_df.loc[out_df["category"] == UNKNOWN_LABEL, "price"].sum()) if len(out_df) else 0.0
+    unclassified_spend = (
+        float(out_df.loc[out_df["category"] == UNKNOWN_LABEL, "price"].sum()) if len(out_df) else 0.0
+    )
 
     by_category = (
         out_df.groupby("category")["kgco2e"].sum().sort_values(ascending=False).round(3).to_dict()
@@ -103,11 +105,12 @@ def score_dataframe(
 
 def score_receipt_csv(
     csv_path: Path,
-    paths: Paths = Paths(),
+    paths: Paths | None = None,
     conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     drop_junk: bool = True,
     score_unknown: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
+    paths = paths or Paths()
     df = pd.read_csv(csv_path)
     return score_dataframe(
         df=df,
