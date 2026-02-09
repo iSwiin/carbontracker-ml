@@ -116,14 +116,40 @@ def load_model(path: Path) -> Pipeline:
     return joblib.load(path)
 
 
+def _get_class_labels(model: Pipeline) -> list[str]:
+    # Pipeline exposes estimator attributes through the final step.
+    if hasattr(model, "classes_"):
+        return [str(c) for c in model.classes_]
+    if (
+        hasattr(model, "named_steps")
+        and "clf" in model.named_steps
+        and hasattr(model.named_steps["clf"], "classes_")
+    ):
+        return [str(c) for c in model.named_steps["clf"].classes_]
+    raise ValueError("Model is missing classes_ attribute; is it fitted?")
+
+
+def predict_topk(model: Pipeline, text: str, k: int = 3) -> list[tuple[str, float]]:
+    """
+    Returns top-k (label, probability) sorted descending.
+    Requires a probabilistic classifier (predict_proba).
+    """
+    if not hasattr(model, "predict_proba"):
+        raise ValueError("Model does not support predict_proba; cannot compute top-k.")
+
+    probs = model.predict_proba([text])[0]
+    labels = _get_class_labels(model)
+
+    k = max(1, min(int(k), len(labels)))
+    # indices of top-k probabilities
+    top_idx = sorted(range(len(probs)), key=lambda i: probs[i], reverse=True)[:k]
+    return [(labels[i], float(probs[i])) for i in top_idx]
+
+
 def predict_one(model: Pipeline, text: str) -> tuple[str, float]:
     """
     Returns (predicted_label, confidence).
     Confidence is max predicted probability. Works for probabilistic models.
     """
-    label = model.predict([text])[0]
-    conf = 0.0
-    if hasattr(model, "predict_proba"):
-        proba = model.predict_proba([text])[0]
-        conf = float(max(proba))
-    return label, conf
+    top1 = predict_topk(model, text, k=1)[0]
+    return top1[0], top1[1]

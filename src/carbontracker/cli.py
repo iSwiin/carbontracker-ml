@@ -9,7 +9,7 @@ import pandas as pd
 
 from .config import DEFAULT_CONF_THRESHOLD, Paths
 from .engine import score_dataframe
-from .model import load_model, predict_one, save_model, train_from_csv
+from .model import load_model, predict_topk, save_model, train_from_csv
 
 
 def _cmd_train(args: argparse.Namespace) -> None:
@@ -35,8 +35,16 @@ def _cmd_predict(args: argparse.Namespace) -> None:
     model_path = Path(args.model) if args.model else paths.model_path
     model = load_model(model_path)
 
-    label, conf = predict_one(model, args.text)
-    out = {"text": args.text, "label": label, "confidence": round(conf, 3)}
+    k = max(1, int(args.topk))
+    top_preds = predict_topk(model, args.text, k=k)
+    label, conf = top_preds[0]
+
+    out = {
+        "text": args.text,
+        "label": label,
+        "confidence": round(conf, 3),
+        "topk": [{"label": lbl, "prob": round(prob, 3)} for lbl, prob in top_preds],
+    }
     print(json.dumps(out, ensure_ascii=False))
 
 
@@ -55,6 +63,7 @@ def _cmd_score_csv(args: argparse.Namespace) -> None:
         conf_threshold=args.threshold,
         drop_junk=not args.keep_junk,
         score_unknown=args.score_unknown,
+        topk=args.topk,
     )
 
     items = result["items"]
@@ -72,6 +81,7 @@ def _cmd_score_csv(args: argparse.Namespace) -> None:
         "by_category": result["by_category"],
         "num_lines_scored": result["num_lines_scored"],
         "conf_threshold": result["conf_threshold"],
+        "topk": int(result.get("topk", args.topk)),
     }
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 
@@ -94,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pred = sub.add_parser("predict", help="Predict a category for a single line item")
     p_pred.add_argument("text", help="Line item text, e.g. '2% MILK 1GAL'")
     p_pred.add_argument("--model", default=None, help="Path to model .joblib")
+    p_pred.add_argument("--topk", type=int, default=3, help="Return top-k predictions (default: 3)")
     p_pred.set_defaults(func=_cmd_predict)
 
     p_score = sub.add_parser("score-csv", help="Score a receipt CSV (text,price) end-to-end")
@@ -110,6 +121,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_score.add_argument(
         "--score-unknown", action="store_true", help="Score unknown items using factor if present"
+    )
+    p_score.add_argument(
+        "--topk", type=int, default=3, help="Store top-k predictions per line item"
     )
     p_score.add_argument(
         "--out-items", default=None, help="Optional path to write scored line items as CSV"

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -28,6 +30,14 @@ class ScoreRequest(BaseModel):
     lines: list[Line]
     conf_threshold: float = Field(0.45, ge=0.0, le=1.0)
     drop_junk: bool = True
+    topk: int = Field(
+        3, ge=1, le=10, description="Number of top predictions to include per line item"
+    )
+
+
+class TopKPred(BaseModel):
+    label: str
+    prob: float
 
 
 class ScoredItem(BaseModel):
@@ -36,6 +46,7 @@ class ScoredItem(BaseModel):
     category: str
     confidence: float
     kgco2e: float
+    topk: list[TopKPred]
 
 
 class ScoreResponse(BaseModel):
@@ -48,11 +59,30 @@ class ScoreResponse(BaseModel):
     conf_threshold: float
     drop_junk: bool
     score_unknown: bool
+    topk: int
 
 
 class OCRScoreResponse(ScoreResponse):
     extracted_lines: list[Line]
     num_extracted_lines: int
+
+
+def _rows_to_scored_items(rows: list[dict]) -> list[ScoredItem]:
+    items: list[ScoredItem] = []
+    for row in rows:
+        top_list = row.get("topk") or []
+        topk_preds = [TopKPred(label=lbl, prob=float(prob)) for lbl, prob in top_list]
+        items.append(
+            ScoredItem(
+                text=row["text"],
+                price=float(row["price"]),
+                category=row["category"],
+                confidence=float(row["confidence"]),
+                kgco2e=float(row["kgco2e"]),
+                topk=topk_preds,
+            )
+        )
+    return items
 
 
 # ---------- JSON scoring (already-structured lines) ----------
@@ -70,15 +100,28 @@ def score(req: ScoreRequest) -> ScoreResponse:
             conf_threshold=req.conf_threshold,
             drop_junk=req.drop_junk,
             score_unknown=False,
+            topk=req.topk,
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    items = [ScoredItem(**row) for row in result["items"].to_dict(orient="records")]
-    result["items"] = items
-    return ScoreResponse(**result)
+    rows = result["items"].to_dict(orient="records")
+    items = _rows_to_scored_items(rows)
+
+    return ScoreResponse(
+        items=items,
+        total_kgco2e=result["total_kgco2e"],
+        total_spend=result["total_spend"],
+        unclassified_spend=result["unclassified_spend"],
+        by_category=result["by_category"],
+        num_lines_scored=result["num_lines_scored"],
+        conf_threshold=result["conf_threshold"],
+        drop_junk=result["drop_junk"],
+        score_unknown=result["score_unknown"],
+        topk=result.get("topk", req.topk),
+    )
 
 
 # ---------- OCR scoring (upload receipt image/PDF) ----------
@@ -89,12 +132,12 @@ async def ocr_score(
     file: UploadFile = File(...),  # noqa: B008
     conf_threshold: float = 0.45,
     drop_junk: bool = True,
+    topk: int = 3,
     tesseract_cmd: str | None = None,
 ) -> OCRScoreResponse:
     """Upload an image/PDF receipt, run OCR, extract candidate (text, price) lines,
     then score CO2e using the existing model + factors.
     """
-
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty upload")
@@ -106,9 +149,6 @@ async def ocr_score(
         if name.endswith(".pdf"):
             ocr_text = ocr_pdf_bytes(data, cfg=cfg)
         else:
-            # OCR image bytes without writing a temp file
-            import io
-
             import pytesseract
             from PIL import Image
 
@@ -131,17 +171,26 @@ async def ocr_score(
             conf_threshold=conf_threshold,
             drop_junk=drop_junk,
             score_unknown=False,
+            topk=topk,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    scored_items = [ScoredItem(**row) for row in result["items"].to_dict(orient="records")]
+    rows = result["items"].to_dict(orient="records")
+    items = _rows_to_scored_items(rows)
     extracted_lines = [Line(**row) for row in df.to_dict(orient="records")]
 
-    result["items"] = scored_items
     return OCRScoreResponse(
-        **{k: v for k, v in result.items() if k != "items"},
-        items=scored_items,
+        items=items,
+        total_kgco2e=result["total_kgco2e"],
+        total_spend=result["total_spend"],
+        unclassified_spend=result["unclassified_spend"],
+        by_category=result["by_category"],
+        num_lines_scored=result["num_lines_scored"],
+        conf_threshold=result["conf_threshold"],
+        drop_junk=result["drop_junk"],
+        score_unknown=result["score_unknown"],
+        topk=result.get("topk", topk),
         extracted_lines=extracted_lines,
         num_extracted_lines=int(len(extracted_lines)),
     )

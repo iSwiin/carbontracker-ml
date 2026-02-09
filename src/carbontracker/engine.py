@@ -8,7 +8,7 @@ import pandas as pd
 
 from .config import DEFAULT_CONF_THRESHOLD, UNKNOWN_LABEL, Paths
 from .factors import load_category_factors
-from .model import load_model, predict_one
+from .model import load_model, predict_one, predict_topk
 from .receipt_cleaning import is_junk_line, normalize_text
 
 
@@ -19,6 +19,7 @@ class ScoredLine:
     category: str
     confidence: float
     kgco2e: float
+    topk: list[tuple[str, float]]
 
 
 def score_dataframe(
@@ -28,6 +29,7 @@ def score_dataframe(
     conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     drop_junk: bool = True,
     score_unknown: bool = False,
+    topk: int = 3,
 ) -> dict[str, Any]:
     """
     df must have columns: text, price
@@ -54,6 +56,8 @@ def score_dataframe(
         text = row["text"]
         price = float(row["price"])
 
+        # Top-k predictions (label, probability), sorted desc
+        top_preds = predict_topk(model, text, k=topk) if topk and topk > 0 else []
         pred, conf = predict_one(model, text)
 
         # apply threshold
@@ -73,6 +77,7 @@ def score_dataframe(
                 category=pred,
                 confidence=round(conf, 3),
                 kgco2e=kg,
+                topk=[(lbl, round(prob, 3)) for lbl, prob in top_preds],
             )
         )
 
@@ -102,6 +107,7 @@ def score_dataframe(
         "conf_threshold": conf_threshold,
         "drop_junk": drop_junk,
         "score_unknown": score_unknown,
+        "topk": int(topk),
     }
 
 
@@ -111,6 +117,7 @@ def score_receipt_csv(
     conf_threshold: float = DEFAULT_CONF_THRESHOLD,
     drop_junk: bool = True,
     score_unknown: bool = False,
+    topk: int = 3,
 ) -> dict[str, Any]:
     paths = paths or Paths()
     df = pd.read_csv(csv_path)
@@ -121,4 +128,5 @@ def score_receipt_csv(
         conf_threshold=conf_threshold,
         drop_junk=drop_junk,
         score_unknown=score_unknown,
+        topk=topk,
     )
